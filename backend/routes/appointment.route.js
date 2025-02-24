@@ -1,12 +1,6 @@
 import {Router} from "express";
-import { authorize, isAdmin } from "../middlewares/auth.middleware.js";
-import {
-    createAppointment,
-    getAppointments,
-    getAppointmentById,
-    updateAppointmentStatus,
-    deleteAppointment,
-} from "../controllers/appointment.controller.js";
+import { authorize,isAdmin } from "../middleware/auth.middleware.js";
+import { createAppointment, getAppointments,getAppointmentById,updateAppointmentStatus,deleteAppointment } from "../controller/appointment.controller.js";
 
 const appointmentRouter = Router();
 

@@ -37,6 +37,6 @@ export const isAdmin = (req, res, next) => {
             return errorResponse(res, 403, "Access denied. Admins only.");
         }
     } catch (error) {
-        return errorResponse(res, 500, "An error occurred while checking admin privileges.");
+      next(error)
     }
 };

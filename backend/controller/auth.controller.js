@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { JWT_EXPIRES_IN, JWT_SECRET } from '../config/env.js';
-import { successResponse, errorResponse } from "../utils/responseHandler.js";
+import {  errorResponse } from "../utils/responseHandler.js";
 
 
 export const register = async (req, res, next) => {
@@ -44,14 +44,15 @@ export const register = async (req, res, next) => {
         await session.commitTransaction();
         session.endSession();
 
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: JWT_EXPIRES_IN * 1000,
+        return res.status(201).json({
+            success: true,
+            message: "User has been successfully registered",
+            data: {
+                token,
+                user: newUser,
+            },
         });
 
-        return successResponse(res, 201, "User has been successfully registered", { user: newUser });
     } catch (error) {
         await session.abortTransaction();
         next(error);
@@ -74,14 +75,13 @@ export const login=async(req,res,next)=>{
 
         user.password = undefined;
 
-       res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: JWT_EXPIRES_IN * 1000,
-        });
-
-        return successResponse(res, 200, "User signed in successfully", { user });
+       return res.status(200).json({
+            success:true,
+            message:'User Signed-in succesfully',
+            data:{
+                token,
+                user,
+            }})
 
 
     }catch(error){
