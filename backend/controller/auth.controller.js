@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { JWT_EXPIRES_IN, JWT_SECRET } from '../config/env.js';
+import { successResponse, errorResponse } from "../utils/responseHandler.js";
 
 
 export const register = async (req, res, next) => {
@@ -12,39 +13,50 @@ export const register = async (req, res, next) => {
         const { name, email, password, role } = req.body;
 
         if (!name || !email || !password) {
-            return res.status(400).json({ success: false, error: "All fields are required" });
+            return errorResponse(res, 400, "All fields are required");
         }
 
         const existingUser = await User.findOne({ email }).session(session);
         if (existingUser) {
-            return res.status(409).json({ success: false, error: "User already exists" });
+            await session.abortTransaction();
+            session.endSession();
+            return errorResponse(res, 409, "User already exists");
         }
 
         if (!JWT_SECRET) {
             throw new Error("JWT_SECRET is not defined in environment variables.");
         }
 
+
+        if (role === "Admin") {
+            return errorResponse(res, 403, "Cannot register as Admin");
+        }
+
         // ✅ Just pass the plain password, Mongoose will hash it automatically
         const [newUser] = await User.create([{ name, email, password, role }], { session });
+
 
         // ✅ Generate JWT token
         const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
+        newUser.password = undefined;
+
         await session.commitTransaction();
         session.endSession();
 
-        return res.status(201).json({
-            success: true,
-            message: "User has been successfully registered",
-            data: {
-                token,
-                user: newUser,
-            },
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: JWT_EXPIRES_IN * 1000,
         });
+
+        return successResponse(res, 201, "User has been successfully registered", { user: newUser });
     } catch (error) {
         await session.abortTransaction();
-        session.endSession();
         next(error);
+    } finally {
+        session.endSession(); // Ensure session is always closed
     }
 };
 
@@ -55,18 +67,21 @@ export const login=async(req,res,next)=>{
         const user = await User.findOne({email})
 
         if (!user || !(await user.matchPassword(password))) {
-            return res.status(401).json({ success: false, error: "Invalid email or password" });
+            return errorResponse(res, 401, "Invalid email or password");
         }
 
         const token= jwt.sign({userId:user._id},JWT_SECRET,{expiresIn:JWT_EXPIRES_IN});
 
-        return res.status(200).json({
-            success:true,
-            message:'User Signed-in succesfully',
-            data:{
-                token,
-                user,
-            }})
+        user.password = undefined;
+
+       res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: JWT_EXPIRES_IN * 1000,
+        });
+
+        return successResponse(res, 200, "User signed in successfully", { user });
 
 
     }catch(error){
