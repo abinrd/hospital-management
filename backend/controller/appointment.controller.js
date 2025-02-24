@@ -4,20 +4,20 @@ import { successResponse, errorResponse } from "../utils/responseHandler.js";
 // ✅ Create a new appointment
 export const createAppointment = async (req, res, next) => {
     try {
-        const { doctorId, date, time, reason } = req.body;
+        const { doctor, date, timeSlot, reason } = req.body;
 
-        if (!doctorId || !date || !time || !reason) {
-            return errorResponse(res, 400, "All fields are required");
-        }
+if (!doctor || !date || !timeSlot) {
+    return errorResponse(res, 400, "All fields are required");
+}
 
-        const appointment = new Appointment({
-            patientId: req.user._id,
-            doctorId,
-            date,
-            time,
-            reason,
-            status: "Pending",
-        });
+const appointment = new Appointment({
+    patient: req.user._id, // ✅ patient instead of patientId
+    doctor, // ✅ doctor instead of doctorId
+    date: new Date(date), // ✅ Convert date to Date object
+    timeSlot, // ✅ Use correct field name from model
+    reason,
+    status: "Pending",
+});
 
         await appointment.save();
         return successResponse(res, 201, "Appointment created successfully", { appointment });

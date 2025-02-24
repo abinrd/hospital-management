@@ -2,6 +2,8 @@ import {PORT} from './config/env.js'
 import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
+import cookieParser from "cookie-parser";
+
 import rateLimit from 'express-rate-limit';
 import ConnectDataBase from './database/mongodb.js';
 import authRouter from './routes/auth.route.js';
@@ -13,6 +15,7 @@ const app = express();
 
 app.use(cors())
 app.use(express.json());
+app.use(cookieParser());
 app.use(morgan('dev'));
 app.use(helmet());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
