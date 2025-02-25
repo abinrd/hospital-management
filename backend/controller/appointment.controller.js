@@ -11,10 +11,10 @@ if (!doctor || !date || !timeSlot) {
 }
 
 const appointment = new Appointment({
-    patient: req.user._id, // ✅ patient instead of patientId
-    doctor, // ✅ doctor instead of doctorId
-    date: new Date(date), // ✅ Convert date to Date object
-    timeSlot, // ✅ Use correct field name from model
+    patient: req.user._id, 
+    doctor, 
+    date: new Date(date), 
+    timeSlot, 
     reason,
     status: "Pending",
 });
