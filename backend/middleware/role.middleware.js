@@ -6,11 +6,9 @@ const roleAuthorize = (allowedRoles) => {
             if (!req.user) {
                 return errorResponse(res, 401, "Unauthorized Access: No User Found");
             }
-
             if (!allowedRoles.includes(req.user.role)) {
                 return errorResponse(res, 403, "Forbidden: Insufficient Permissions");
             }
-
             next();
         } catch (error) {
             next(error);

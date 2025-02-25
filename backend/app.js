@@ -3,11 +3,12 @@ import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import cookieParser from "cookie-parser";
-
 import rateLimit from 'express-rate-limit';
+
 import ConnectDataBase from './database/mongodb.js';
 import authRouter from './routes/auth.route.js';
 import appointmentRouter from './routes/appointment.route.js';
+import userRouter from './routes/user.route.js';
 import express from 'express'
 
 
@@ -22,6 +23,7 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
 app.use('/api/v1/auth',authRouter)
 app.use('/api/v1/book',appointmentRouter)
+app.use('/api/v1/users',userRouter)
 
 app.get("/",(req,res)=>{
     res.send("welcome to Hosptital Mangement System")
