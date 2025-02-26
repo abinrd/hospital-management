@@ -10,7 +10,7 @@ export const register = async (req, res, next) => {
     session.startTransaction();
 
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password } = req.body;
 
         if (!name || !email || !password) {
             return errorResponse(res, 400, "All fields are required");
@@ -28,12 +28,12 @@ export const register = async (req, res, next) => {
         }
 
 
-        if (role === "Admin") {
-            return errorResponse(res, 403, "Cannot register as Admin");
-        }
+      /*  if (role === "Admin") {
+           return errorResponse(res, 403, "Cannot register as Admin");
+        }*/
 
         // ✅ Just pass the plain password, Mongoose will hash it automatically
-        const [newUser] = await User.create([{ name, email, password, role }], { session });
+        const [newUser] = await User.create([{ name, email, password, role:"Patient" }], { session });
 
 
         // ✅ Generate JWT token
