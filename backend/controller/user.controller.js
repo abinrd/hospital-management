@@ -53,3 +53,75 @@ export const deleteUser = async (req, res, next) => {
         next(error);
     }
 };
+
+export const approveDoctor = async (req, res, next) => {
+    try {
+        const { doctorId } = req.params;
+        
+        const doctor = await User.findById(doctorId);
+        
+        if (!doctor) {
+            return errorResponse(res, 404, "Doctor not found");
+        }
+        
+        if (doctor.role !== 'Doctor') {
+            return errorResponse(res, 400, "User is not a doctor");
+        }
+        
+        doctor.isApproved = true;
+        await doctor.save();
+        
+        return successResponse(res, 200, "Doctor approved successfully", { doctor });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Promote user to Admin (Admin only)
+export const promoteToAdmin = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        
+        const user = await User.findById(userId);
+        
+        if (!user) {
+            return errorResponse(res, 404, "User not found");
+        }
+        
+        user.role = 'Admin';
+        user.isApproved = true;
+        await user.save();
+        
+        return successResponse(res, 200, "User promoted to Admin successfully", { user });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Get all pending doctors (Admin only)
+export const getPendingDoctors = async (req, res, next) => {
+    try {
+        const doctors = await User.find({ 
+            role: 'Doctor',
+            isApproved: false
+        }).select("-password");
+        
+        return successResponse(res, 200, "Pending doctors retrieved successfully", { doctors });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Get all approved doctors (For patients to book appointments)
+export const getApprovedDoctors = async (req, res, next) => {
+    try {
+        const doctors = await User.find({ 
+            role: 'Doctor',
+            isApproved: true
+        }).select("-password -inviteToken -inviteTokenExpires");
+        
+        return successResponse(res, 200, "Approved doctors retrieved successfully", { doctors });
+    } catch (error) {
+        next(error);
+    }
+};
