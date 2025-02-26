@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { JWT_EXPIRES_IN, JWT_SECRET } from '../config/env.js';
-import {  errorResponse } from "../utils/responseHandler.js";
+import {  errorResponse,successResponse} from "../utils/responseHandler.js";
+import { sendInviteEmail } from "../utils/emailService.js";
 
 
 export const register = async (req, res, next) => {
@@ -89,3 +90,152 @@ export const login=async(req,res,next)=>{
     }
 
 }
+
+export const inviteDoctor = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const { email, name, specialization } = req.body;
+
+        if (!email || !name || !specialization) {
+            return errorResponse(res, 400, "Email, name, and specialization are required");
+        }
+        const existingUser = await User.findOne({ email }).session(session);
+        if (existingUser) {
+            await session.abortTransaction();
+            session.endSession();
+            return errorResponse(res, 409, "User with this email already exists");
+        }
+
+        const newDoctor = new User({
+            email,
+            name,
+            specialization,
+            role: 'Doctor',
+            isApproved: false,
+            password: crypto.randomBytes(10).toString('hex') // Temporary password
+        });
+          // Generate an invite token
+          const inviteToken = newDoctor.generateInviteToken();
+        
+          await newDoctor.save({ session });
+  
+          // Generate invite link
+          const inviteLink = `${FRONTEND_URL}/register/doctor?token=${inviteToken}`;
+  
+          // Send invitation email
+          await sendInviteEmail(email, name, inviteLink);
+  
+          await session.commitTransaction();
+          session.endSession();
+  
+          return successResponse(res, 201, "Doctor invitation sent successfully", {
+              doctor: {
+                  id: newDoctor._id,
+                  name: newDoctor.name,
+                  email: newDoctor.email,
+                  specialization: newDoctor.specialization
+              }
+          });
+      } catch (error) {
+          await session.abortTransaction();
+          session.endSession();
+          next(error);
+      }
+  };
+
+  export const verifyDoctorInvite = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+        
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+        
+        const doctor = await User.findOne({
+            inviteToken: hashedToken,
+            inviteTokenExpires: { $gt: Date.now() }
+        });
+
+        if (!doctor) {
+            return errorResponse(res, 400, "Invalid or expired token");
+        }
+
+        return successResponse(res, 200, "Token verified successfully", {
+            email: doctor.email,
+            name: doctor.name
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Complete doctor registration
+export const completeDoctorRegistration = async (req, res, next) => {
+    try {
+        const { token, password, contactNumber, availableTimeSlots } = req.body;
+        
+        if (!token || !password) {
+            return errorResponse(res, 400, "Token and password are required");
+        }
+
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+        
+        const doctor = await User.findOne({
+            inviteToken: hashedToken,
+            inviteTokenExpires: { $gt: Date.now() }
+        });
+
+        if (!doctor) {
+            return errorResponse(res, 400, "Invalid or expired token");
+        }
+
+        // Update doctor information
+        doctor.password = password;
+        doctor.contactNumber = contactNumber;
+        if (availableTimeSlots) doctor.availableTimeSlots = availableTimeSlots;
+        doctor.inviteToken = undefined;
+        doctor.inviteTokenExpires = undefined;
+
+        await doctor.save();
+
+        // Generate JWT token
+        const jwtToken = jwt.sign({ userId: doctor._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+        doctor.password = undefined;
+
+        return successResponse(res, 200, "Doctor registration completed successfully", {
+            token: jwtToken,
+            user: doctor
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Create first admin (initialization)
+export const createFirstAdmin = async (req, res, next) => {
+    try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return errorResponse(res, 400, "All fields are required");
+        }
+
+        const admin = await User.createFirstAdmin({ name, email, password });
+        
+        if (!admin) {
+            return errorResponse(res, 409, "Admin already exists");
+        }
+
+        const token = jwt.sign({ userId: admin._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        
+        admin.password = undefined;
+
+        return successResponse(res, 201, "First admin created successfully", {
+            token,
+            user: admin
+        });
+    } catch (error) {
+        next(error);
+    }
+};
