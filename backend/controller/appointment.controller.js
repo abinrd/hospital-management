@@ -94,3 +94,23 @@ export const deleteAppointment = async (req, res, next) => {
         next(error);
     }
 };
+
+export const getMyAppointments = async (req, res, next) => {
+    try {
+        let appointments;
+        
+        if (req.user.role === 'Patient') {
+            appointments = await Appointment.find({ patient: req.user._id })
+                .populate('doctor', 'name specialization');
+        } else if (req.user.role === 'Doctor') {
+            appointments = await Appointment.find({ doctor: req.user._id })
+                .populate('patient', 'name');
+        } else {
+            return errorResponse(res, 403, "Unauthorized to view appointments");
+        }
+        
+        return successResponse(res, 200, "Appointments retrieved successfully", { appointments });
+    } catch (error) {
+        next(error);
+    }
+};
