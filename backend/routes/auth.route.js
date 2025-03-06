@@ -1,6 +1,6 @@
 import {Router} from 'express'
 import { login, register } from '../controller/auth.controller.js';
-import { inviteDoctor, verifyDoctorInvite, completeDoctorRegistration, createFirstAdmin,approveDoctor} from '../controller/auth.controller.js';
+import { inviteDoctor, verifyDoctorInvite, completeDoctorRegistration, createFirstAdmin} from '../controller/auth.controller.js';
 import { authorize, isAdmin } from '../middleware/auth.middleware.js';
 
 
@@ -12,7 +12,6 @@ authRouter.post('/login',login)
 authRouter.post('/invite-doctor', authorize, isAdmin, inviteDoctor);
 authRouter.get('/verify-doctor-invite/:token', verifyDoctorInvite);
 authRouter.post('/complete-doctor-registration', completeDoctorRegistration);
-authRouter.put('/approve-doctor/:doctorId', authorize, isAdmin, approveDoctor);
 authRouter.post('/create-first-admin', createFirstAdmin);
 
 
