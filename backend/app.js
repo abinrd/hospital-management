@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 import ConnectDataBase from './database/mongodb.js';
 import authRouter from './routes/auth.route.js';
 import appointmentRouter from './routes/appointment.route.js';
-import { errorMiddleware } from './middleware/error.middleware.js'
+import  errorMiddleware  from './middleware/error.middleware.js'
 import User from './models/user.model.js';
 import userRouter from './routes/user.route.js';
 import express from 'express'
@@ -46,7 +46,7 @@ const StartServer =async()=>{
         if (adminCount === 0) {
             console.log('No admins found. Creating default admin account...');
             await User.create({
-                name: 'Admin',
+                name: 'admin',
                 email: 'admin@hospital.com',
                 password: 'Admin@123',
                 role: 'Admin',

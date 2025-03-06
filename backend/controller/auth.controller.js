@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
+import crypto from 'crypto';
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
-import { JWT_EXPIRES_IN, JWT_SECRET } from '../config/env.js';
+import { JWT_EXPIRES_IN, JWT_SECRET,FRONTEND_URL } from '../config/env.js';
 import {  errorResponse,successResponse} from "../utils/responseHandler.js";
 import { sendInviteEmail } from "../utils/emailService.js";
 
@@ -145,29 +146,29 @@ export const inviteDoctor = async (req, res, next) => {
       }
   };
 
-  export const verifyDoctorInvite = async (req, res, next) => {
-    try {
-        const { token } = req.params;
-        
-        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-        
-        const doctor = await User.findOne({
-            inviteToken: hashedToken,
-            inviteTokenExpires: { $gt: Date.now() }
-        });
+    export const verifyDoctorInvite = async (req, res, next) => {
+        try {
+            const { token } = req.params;
+            
+            const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+            
+            const doctor = await User.findOne({
+                inviteToken: token,
+                inviteTokenExpires: { $gt: Date.now() }
+            });
 
-        if (!doctor) {
-            return errorResponse(res, 400, "Invalid or expired token");
+            if (!doctor) {
+                return errorResponse(res, 400, "Invalid or expired token");
+            }
+
+            return successResponse(res, 200, "Token verified successfully", {
+                email: doctor.email,
+                name: doctor.name
+            });
+        } catch (error) {
+            next(error);
         }
-
-        return successResponse(res, 200, "Token verified successfully", {
-            email: doctor.email,
-            name: doctor.name
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+    };
 
 // Complete doctor registration
 export const completeDoctorRegistration = async (req, res, next) => {
@@ -181,7 +182,7 @@ export const completeDoctorRegistration = async (req, res, next) => {
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
         
         const doctor = await User.findOne({
-            inviteToken: hashedToken,
+            inviteToken: token,
             inviteTokenExpires: { $gt: Date.now() }
         });
 
@@ -237,5 +238,28 @@ export const createFirstAdmin = async (req, res, next) => {
         });
     } catch (error) {
         next(error);
+    }
+};
+
+export const approveDoctor = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+
+        const doctor = await User.findById(doctorId);
+
+        if (!doctor) {
+            return res.status(404).json({ success: false, message: "Doctor not found" });
+        }
+
+        if (doctor.role !== 'Doctor') {
+            return res.status(400).json({ success: false, message: "User is not a doctor" });
+        }
+
+        doctor.isApproved = true;
+        await doctor.save();
+
+        res.json({ success: true, message: "Doctor approved successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Internal server error", error: error.message });
     }
 };
