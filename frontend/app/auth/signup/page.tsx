@@ -11,24 +11,66 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
+import { fetchData } from "@/lib/utils";
 
 export default function SignupPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const defaultRole = searchParams.get("role") || "patient"
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  })
   
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+  //console.log("Form Data Before Sending:", formData);
 
   const handleSignup = async (role: string, e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
+
+    const payload = { 
+      name: `${formData.firstName} ${formData.lastName}`, // Combine first and last name
+      email: formData.email,
+      password: formData.password,
+      role
+    };
+    //console.log("Form Data Before Sending:", payload);
     
-    // Simulate signup process
-    setTimeout(() => {
-      setIsLoading(false)
+    try {
+      const res = await fetchData("/api/v1/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+  
+      const data = await res.json();
+
+      console.log("Response Status:", res.status); // Log status code
+    console.log("Response Data:", data); // Log response body
+
+      if (!res.ok) throw new Error(data.message || "Signup failed");
+  
+      // Optionally, store token for auto-login
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
       // Redirect to login
       router.push(`/auth/login?role=${role}`)
-    }, 1500)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -81,26 +123,28 @@ export default function SignupPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="patient-first-name">First Name</Label>
-                        <Input id="patient-first-name" placeholder="John" required />
+                        <Input id="patient-first-name" name="firstName" placeholder="John"value={formData.firstName}onChange={handleChange}required/>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="patient-last-name">Last Name</Label>
-                        <Input id="patient-last-name" placeholder="Doe" required />
+                        <Input id="patient-last-name"  name="lastName" placeholder="Doe"value={formData.lastName}onChange={handleChange} required />
                       </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="patient-email">Email</Label>
-                      <Input id="patient-email" type="email" placeholder="name@example.com" required />
+                      <Input id="patient-email" name="email" type="email" placeholder="name@example.com"value={formData.email}onChange={handleChange}required />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="patient-password">Password</Label>
-                      <Input id="patient-password" type="password" placeholder="••••••••" required />
+                      <Input id="patient-password"name="password" type="password" placeholder="••••••••" value={formData.password}onChange={handleChange}required />
                     </div>
                     <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={isLoading}>
                       {isLoading ? "Creating account..." : "Create Account"}
                     </Button>
                   </div>
                 </form>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+
               </CardContent>
               <CardFooter className="flex flex-col items-center gap-2">
                 <div className="text-sm text-gray-500">
@@ -125,26 +169,32 @@ export default function SignupPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="doctor-first-name">First Name</Label>
-                        <Input id="doctor-first-name" placeholder="Jane" required />
+                        <Input id="doctor-first-name"  name="firstName" 
+                               placeholder="Jane" 
+                               value={formData.firstName}  
+                               onChange={handleChange} 
+                               required  />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="doctor-last-name">Last Name</Label>
-                        <Input id="doctor-last-name" placeholder="Smith" required />
+                        <Input id="doctor-last-name"name="lastName" placeholder="Smith"value={formData.lastName}onChange={handleChange} required  />
                       </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="doctor-email">Email</Label>
-                      <Input id="doctor-email" type="email" placeholder="name@example.com" required />
+                      <Input id="doctor-email" name="email" type="email" placeholder="name@example.com"value={formData.email}onChange={handleChange}required />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="doctor-password">Password</Label>
-                      <Input id="doctor-password" type="password" placeholder="••••••••" required />
+                      <Input id="doctor-password" name="password" type="password" placeholder="••••••••" value={formData.password}onChange={handleChange} required />
                     </div>
                     <Button type="submit" className="w-full bg-purple-500 hover:bg-purple-600" disabled={isLoading}>
                       {isLoading ? "Creating account..." : "Create Account"}
                     </Button>
                   </div>
                 </form>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+
               </CardContent>
               <CardFooter className="flex flex-col items-center gap-2">
                 <div className="text-sm text-gray-500">
