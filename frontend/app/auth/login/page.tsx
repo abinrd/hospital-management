@@ -9,30 +9,60 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { fetchData } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const defaultRole = searchParams.get("role") || "patient"
   
-  const [isLoading, setIsLoading] = useState(false)
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = async (role: string, e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("");
     
+    
+    try {
+      const response = await fetchData("/api/v1/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data=await response.json();
+      console.log("API response Data",data)
+
+      console.log("Response from API:", response);
+
+      if (data.success) {
+        // Save token if provided
+        if (data.data?.token) {
+          localStorage.setItem("token", data.data.token);
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
     // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false)
-      
-      // Redirect based on role
-      if (role === "doctor") {
-        router.push("/doctor/dashboard")
-      } else {
-        router.push("/patient/dashboard")
-      }
-    }, 1500)
+    if (role === "doctor") {
+      router.push("/doctor/dashboard");
+    } else {
+      router.push("/patient/dashboard");
+    }
+  } else {
+    setError(data.message || "Invalid credentials");
   }
+} catch (err) {
+  setError("Something went wrong. Please try again.");
+}
+
+setIsLoading(false);
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 p-4">
@@ -84,10 +114,12 @@ export default function LoginPage() {
                     <div className="grid gap-2">
                       <Label htmlFor="patient-email">Email</Label>
                       <Input
-                        id="patient-email"
-                        type="email"
-                        placeholder="name@example.com"
-                        required
+                          id="patient-email"
+                          type="email"
+                          placeholder="name@example.com"
+                          value={email} // Connect email state here
+                          onChange={(e) => setEmail(e.target.value)} // Update email state on input change
+                          required
                       />
                     </div>
                     <div className="grid gap-2">
@@ -101,6 +133,8 @@ export default function LoginPage() {
                         id="patient-password"
                         type="password"
                         placeholder="••••••••"
+                        value={password} // Connect password state here
+                        onChange={(e) => setPassword(e.target.value)} // Update password state on input change
                         required
                       />
                     </div>
@@ -109,10 +143,11 @@ export default function LoginPage() {
                     </Button>
                   </div>
                 </form>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
               </CardContent>
               <CardFooter className="flex flex-col items-center gap-2">
                 <div className="text-sm text-gray-500">
-                  Don't have an account?{" "}
+                  Don`t have an account?{" "}
                   <Link href="/auth/signup?role=patient" className="text-teal-600 hover:text-teal-800 font-medium">
                     Sign up
                   </Link>
@@ -136,6 +171,8 @@ export default function LoginPage() {
                         id="doctor-email"
                         type="email"
                         placeholder="name@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         required
                       />
                     </div>
@@ -150,6 +187,8 @@ export default function LoginPage() {
                         id="doctor-password"
                         type="password"
                         placeholder="••••••••"
+                        value={password}
+                        onChange={(e)=> setPassword(e.target.value)}
                         required
                       />
                     </div>
@@ -158,10 +197,11 @@ export default function LoginPage() {
                     </Button>
                   </div>
                 </form>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
               </CardContent>
               <CardFooter className="flex flex-col items-center gap-2">
                 <div className="text-sm text-gray-500">
-                  Don't have an account?{" "}
+                  Don`t have an account?{" "}
                   <Link href="/auth/signup?role=doctor" className="text-purple-600 hover:text-purple-800 font-medium">
                     Sign up
                   </Link>
