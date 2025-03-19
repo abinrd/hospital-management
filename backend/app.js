@@ -1,4 +1,4 @@
-import {PORT} from './config/env.js'
+import {PORT,AD_NAME,AD_EMAIL,AD_PASSWORD,AD_ROLE,AD_IS_APPROVED} from './config/env.js'
 import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
@@ -46,11 +46,11 @@ const StartServer =async()=>{
         if (adminCount === 0) {
             console.log('No admins found. Creating default admin account...');
             await User.create({
-                name: 'admin',
-                email: 'admin@hospital.com',
-                password: 'Admin@123',
-                role: 'Admin',
-                isApproved: true
+                name: AD_NAME,
+                email: AD_EMAIL,
+                password: AD_PASSWORD,
+                role: AD_ROLE,
+                isApproved: AD_IS_APPROVED
             });
             console.log('Default admin created.');
         }
