@@ -3,6 +3,10 @@ import { successResponse, errorResponse } from "../utils/responseHandler.js";
 
 // ✅ Create a new appointment
 export const createAppointment = async (req, res, next) => {
+
+    console.log("Received request body:", req.body);
+    console.log("User data:", req.user);
+    
     try {
         const { doctor, date, timeSlot, reason } = req.body;
 

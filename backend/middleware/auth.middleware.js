@@ -7,6 +7,8 @@ export const authorize = async (req, res, next) => {
     try {
         let token = req.cookies.token || (req.headers.authorization?.startsWith("Bearer") ? req.headers.authorization.split(" ")[1] : null);
 
+        console.log("🟡 Received Token:", token);
+
         if (!token) {
             return errorResponse(res, 401, "Unauthorized Access: No token provided");
         }
@@ -16,15 +18,20 @@ export const authorize = async (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, JWT_SECRET);
+
+        console.log("🟢 Decoded Token:", decoded);
+
         const user = await User.findById(decoded.userId).select("-password");
 
         if (!user) {
             return errorResponse(res, 401, "Unauthorized Access: Invalid or expired token");
         }
 
-        req.user = user; 
+        req.user = user;
+        console.log("🟢 Authenticated User:", req.user);
         next();
     } catch (error) {
+        console.error("❌ Authorization Error:", error.message);
         next(error);
     }
 };

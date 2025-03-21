@@ -13,6 +13,6 @@ userRouter.delete("/:id", authorize, roleAuthorize(["Admin"]), deleteUser);// De
 userRouter.patch('/approve-doctor/:doctorId', authorize, roleAuthorize(['Admin']), approveDoctor);
 userRouter.patch('/promote-to-admin/:userId', authorize, roleAuthorize(['Admin']), promoteToAdmin);
 userRouter.get('/pending-doctors', authorize, roleAuthorize(['Admin']), getPendingDoctors);
-userRouter.get('/approved-doctors', authorize, getApprovedDoctors);
+userRouter.get('/approved-doctors', getApprovedDoctors);
 
 export default userRouter;

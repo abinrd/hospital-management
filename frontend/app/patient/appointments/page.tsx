@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState,useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Button } from "../../../components/ui/button"
@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { format } from "date-fns"
 import { ChevronLeft, Clock, Search } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn,fetchData } from "@/lib/utils"
 import { AnyARecord } from "node:dns"
 
 export default function BookAppointment() {
@@ -25,71 +25,101 @@ export default function BookAppointment() {
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null)
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [reason, setReason] = useState("")
+  const [doctors, setDoctors] = useState<any[]>(() => []);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Mock data for doctors
-  const doctors = [
-    {
-      id: 1,
-      name: "Dr. Sarah Johnson",
-      specialty: "Cardiology",
-      rating: 4.9,
-      reviews: 124,
-      availability: ["9:00 AM", "10:30 AM", "2:00 PM", "3:30 PM"],
-    },
-    {
-      id: 2,
-      name: "Dr. Michael Chen",
-      specialty: "Dermatology",
-      rating: 4.7,
-      reviews: 98,
-      availability: ["8:30 AM", "11:00 AM", "1:30 PM", "4:00 PM"],
-    },
-    {
-      id: 3,
-      name: "Dr. Emily Wilson",
-      specialty: "General Medicine",
-      rating: 4.8,
-      reviews: 156,
-      availability: ["9:30 AM", "12:00 PM", "2:30 PM", "4:30 PM"],
-    },
-    {
-      id: 4,
-      name: "Dr. Robert Davis",
-      specialty: "Orthopedics",
-      rating: 4.6,
-      reviews: 87,
-      availability: ["10:00 AM", "1:00 PM", "3:00 PM", "5:00 PM"],
-    },
-  ]
+  
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const response = await fetchData("/api/v1/users/approved-doctors");
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+  
+        const text = await response.text();
+        console.log("📥 Raw API Response (Text):", text);
+  
+        const data = JSON.parse(text);
+        console.log("📥 Parsed API Response:", data);
+  
+        if (!data || typeof data !== "object") {
+          throw new Error("Invalid API response: Expected an object");
+        }
+  
+        if (!("data" in data) || !("doctors" in data.data)) {
+          throw new Error("Invalid API response: 'doctors' field missing");
+        }
+  
+        if (!Array.isArray(data.data.doctors)) {
+          throw new Error("Invalid API response: 'doctors' is not an array");
+        }
+  
+        setDoctors(data.data.doctors);
+        console.log("✅ Doctors Updated in State:", data.data.doctors);
+      } catch (error) {
+        console.error("❌ Fetch Error:", error);
+      }
+    };
+  
+    fetchDoctors();
+  }, []);
+  
+  
 
-  const filteredDoctors = doctors.filter(
+  console.log("Doctors in State:", doctors);
+
+  const filteredDoctors = (doctors || []).filter(
     (doctor) =>
       doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()),
+      doctor.specialization.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const handleSelectDoctor = (doctor: any) => {
     setSelectedDoctor(doctor)
-    setStep(2)
-  }
+    setSelectedTime(""); // Reset selected time when choosing a new doctor
+    setDate(undefined); // Reset date
+    setStep(2);
+  };
+  
 
   const handleSelectTime = (time: string) => {
     setSelectedTime(time)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!date || !selectedTime || !selectedDoctor || !reason) {
+      setError("All fields are required")
+      return
+    }
 
-    // // Simulate appointment booking
-    // toast({
-    //   title: "Appointment Requested",
-    //   description: `Your appointment with ${selectedDoctor.name} on ${format(date!, "PPP")} at ${selectedTime} is pending approval.`,
-    // })
+    try {
+      setLoading(true)
+      setError("")
 
-    // Redirect to dashboard
-    setTimeout(() => {
+      const response = await fetchData("/api/v1/book/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" ,"Authorization": `Bearer ${localStorage.getItem("token")}`},
+        body: JSON.stringify({
+          doctor: selectedDoctor._id,
+          date: format(date, "yyyy-MM-dd"),
+          timeSlot: selectedTime,
+          reason
+        }),
+      })
+
+      if (!response.ok) throw new Error("Failed to book appointment")
+
       router.push("/patient/dashboard")
-    }, 2000)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -131,7 +161,7 @@ export default function BookAppointment() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {filteredDoctors.map((doctor) => (
                         <div
-                          key={doctor.id}
+                          key={doctor._id}
                           className="border rounded-lg p-4 hover:border-teal-200 hover:bg-teal-50 cursor-pointer transition-colors"
                           onClick={() => handleSelectDoctor(doctor)}
                         >
@@ -219,27 +249,33 @@ export default function BookAppointment() {
 
                     <div>
                       <Label className="mb-2 block">Select Time</Label>
-                      {date ? (
+
+                   
+
+                      {date && selectedDoctor?.availableTimeSlots?.length ? (
                         <div className="grid grid-cols-2 gap-2">
-                          {selectedDoctor.availability.map((time: string) => (
-                            <Button
-                              key={time}
-                              type="button"
-                              variant={selectedTime === time ? "default" : "outline"}
-                              className={cn(
-                                "justify-start text-left font-normal",
-                                selectedTime === time && "bg-teal-500 text-white hover:bg-teal-600",
-                              )}
-                              onClick={() => handleSelectTime(time)}
-                            >
-                              <Clock className="mr-2 h-4 w-4" />
-                              {time}
-                            </Button>
-                          ))}
+                          {selectedDoctor.availableTimeSlots
+                            .filter(slot => slot.day === format(date, "EEEE")) // Match day
+                            .flatMap(slot => slot.slots) // Extract slot array
+                            .map((time: string) => (
+                              <Button
+                                key={time}
+                                type="button"
+                                variant={selectedTime === time ? "default" : "outline"}
+                                className={cn(
+                                  "justify-start text-left font-normal",
+                                  selectedTime === time && "bg-teal-500 text-white hover:bg-teal-600",
+                                )}
+                                onClick={() => handleSelectTime(time)}
+                              >
+                                <Clock className="mr-2 h-4 w-4" />
+                                {time}
+                              </Button>
+                            ))}
                         </div>
                       ) : (
-                        <p className="text-gray-500 p-4 text-center border rounded-md">Please select a date first</p>
-                      )}
+                      <p className="text-gray-500">Select a doctor to see available time slots.</p>
+                    )}
                     </div>
                   </div>
 

@@ -6,7 +6,7 @@ import {createAppointment,getAppointments, getAppointmentById, updateAppointment
 const appointmentRouter = Router();
 
 
-appointmentRouter.post("/", authorize,roleAuthorize(['Patient']), createAppointment) // Create a new appointment (Only authorized users)
+appointmentRouter.post("/", authorize, createAppointment) // Create a new appointment (Only authorized users)
 appointmentRouter.get("/", authorize, roleAuthorize(["admin"]), getAppointments);// Get all appointments (Only admin can access)
 appointmentRouter.get("/:id", authorize, getAppointmentById);// Get a single appointment by ID (Authorized user)
 appointmentRouter.get('/my-appointments', authorize, getMyAppointments);
