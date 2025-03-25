@@ -122,11 +122,11 @@ export const inviteDoctor = async (req, res, next) => {
         
           await newDoctor.save({ session });
   
-          // Generate invite link
-          const inviteLink = `${FRONTEND_URL}/register/doctor?token=${inviteToken}`;
-  
-          // Send invitation email
-          await sendInviteEmail(email, name, inviteLink);
+          // Generate registration link
+          const registrationLink = `${FRONTEND_URL}/auth/register/doctor?token=${encodeURIComponent(inviteToken)}`;
+
+        // Send invitation email
+        await sendInviteEmail(email, name, registrationLink);
   
           await session.commitTransaction();
           session.endSession();
@@ -150,7 +150,7 @@ export const inviteDoctor = async (req, res, next) => {
         try {
             const { token } = req.params;
             
-            const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+        //    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
             
             const doctor = await User.findOne({
                 inviteToken: token,
@@ -179,7 +179,7 @@ export const completeDoctorRegistration = async (req, res, next) => {
             return errorResponse(res, 400, "Token and password are required");
         }
 
-        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    //    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
         
         const doctor = await User.findOne({
             inviteToken: token,
@@ -221,6 +221,7 @@ export const createFirstAdmin = async (req, res, next) => {
         if (!name || !email || !password) {
             return errorResponse(res, 400, "All fields are required");
         }
+   //     const existingAdmin = await User.findOne({ role: "admin" });
 
         const admin = await User.createFirstAdmin({ name, email, password });
         

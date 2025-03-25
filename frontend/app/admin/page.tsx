@@ -5,7 +5,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -21,30 +20,35 @@ function Admin() {
     const [error,setError]=React.useState("");
     const [success,setSuccess]=React.useState("");
     const router = useRouter();
+
     const handleSubmit = async (e: React.FormEvent)=> {
         e.preventDefault();
         setError("");
         setSuccess("");
         try{
-            if(!name){
-                setError("Please fill name");
+            if(!name || !email || !specialization){
+                setError("Please fill all field");
                 return;
             }
-            if(!email){
-                setError("Please enter email");
-                return;
-            }
-            if(!specialization){
-              setError("Please enter specialization");
+            const token = localStorage.getItem("token");
+            if(!token){
+              setError("Unauthorized! Please login again.");
               return;
             }
+
        const res = await fetchData("/api/v1/auth/invite-doctor",{
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: {"Content-Type":"application/json",
+                   "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({name,email,specialization})
        })
+
+       const data=await res.json();
+        console.log("API response Data",data)
+        
        if(!res.ok){
-        setError("Failed to invite doctor");
+        setError(data.message||"Failed to invite doctor");
         return;
        }
        setSuccess("Invitation send sucessfully");
@@ -94,7 +98,7 @@ function Admin() {
         <CardDescription>Send invitation to doctors to join this reputed hosptial.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form>
+        <form onSubmit={handleSubmit}>
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="name">Name</Label>
@@ -111,7 +115,7 @@ function Admin() {
           </div>
           <div className="flex mt-3 justify-between">
           <Button onClick={()=>router.push("/")} variant="outline">Cancel</Button>
-          <Button type="submit" onClick={handleSubmit}>Send</Button>
+          <Button type="submit">Send</Button>
           </div>
         </form>
       </CardContent>
