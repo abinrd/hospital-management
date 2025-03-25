@@ -13,9 +13,11 @@ import { Input } from "@/components/ui/input"
 
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
+import { fetchData } from "Component/lib/utils"
 function Admin() {
     const [name,setName]=React.useState("");
     const [email,setEmail]=React.useState("");
+    const [specialization,setSpecialization]=React.useState("");
     const [error,setError]=React.useState("");
     const [success,setSuccess]=React.useState("");
     const router = useRouter();
@@ -32,10 +34,14 @@ function Admin() {
                 setError("Please enter email");
                 return;
             }
-       const res = await fetch("/api/v1/auth/invite-doctor",{
+            if(!specialization){
+              setError("Please enter specialization");
+              return;
+            }
+       const res = await fetchData("/api/v1/auth/invite-doctor",{
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({name,email})
+        body: JSON.stringify({name,email,specialization})
        })
        if(!res.ok){
         setError("Failed to invite doctor");
@@ -97,6 +103,10 @@ function Admin() {
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" onChange={(e)=>setEmail(e.target.value)} placeholder="Email of your doctor" />
+            </div>
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="specialization">Specialization</Label>
+              <Input id="specialization" onChange={(e)=>setSpecialization(e.target.value)} placeholder="Enter your specialization" />
             </div>
           </div>
           <div className="flex mt-3 justify-between">

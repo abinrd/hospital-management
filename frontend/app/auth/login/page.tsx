@@ -30,9 +30,11 @@ export default function LoginPage() {
     
     
     try {
+      console.log("AdminCredentials :",AD_EMAIL, AD_PASSWORD);
       if(email==AD_EMAIL && password==AD_PASSWORD){
-        router.push("/admin");
-        return
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        router.replace("/admin");
+        return;
       }
       const response = await fetchData("/api/v1/auth/login", {
         method: "POST",
@@ -48,20 +50,21 @@ export default function LoginPage() {
       console.log("Response from API:", response);
 
       if (data.success) {
-        // Save token if provided
-        if (data.data?.token) {
-          localStorage.setItem("token", data.data.token);
-          await new Promise((resolve) => setTimeout(resolve, 100))
+        localStorage.setItem("token", data.data.token);
+        localStorage.setItem("userRole", data.data.user.role); // Store the role
+      
+        // Redirect based on user role
+        if (data.data.user.role === "admin") {
+          router.push("/admin");
+        } else if (data.data.user.role === "doctor") {
+          router.push("/doctor/dashboard");
+        } else {
+          router.push("/patient/dashboard");
         }
-    // Simulate login process
-    if (role === "doctor") {
-      router.push("/doctor/dashboard");
-    } else {
-      router.push("/patient/dashboard");
-    }
-  } else {
-    setError(data.message || "Invalid credentials");
-  }
+      } else {
+        setError(data.message || "Invalid credentials");
+      }
+      
 } catch (err) {
   setError("Something went wrong. Please try again.",);
 }
