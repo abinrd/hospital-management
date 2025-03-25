@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { fetchData } from "@/lib/utils";
+import { fetchData,AD_EMAIL,AD_PASSWORD } from "@/lib/utils";
+ 
 
 export default function LoginPage() {
   const router = useRouter()
@@ -29,7 +30,7 @@ export default function LoginPage() {
     
     
     try {
-      if(email=="admin@hospital.com" && password=="Admin@123"){
+      if(email==AD_EMAIL && password==AD_PASSWORD){
         router.push("/admin");
         return
       }
@@ -62,7 +63,7 @@ export default function LoginPage() {
     setError(data.message || "Invalid credentials");
   }
 } catch (err) {
-  setError("Something went wrong. Please try again.");
+  setError("Something went wrong. Please try again.",);
 }
 
 setIsLoading(false);
