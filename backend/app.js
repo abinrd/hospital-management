@@ -42,8 +42,9 @@ app.use((err, req, res, next) => {
 const StartServer =async()=>{
     try{
         await ConnectDataBase();
-        const adminCount = await User.countDocuments({ role: 'Admin' });
-        if (adminCount === 0) {
+        const existingAdmin = await User.findOne({ email: AD_EMAIL });
+
+        if (!existingAdmin) {
             console.log('No admins found. Creating default admin account...');
             await User.create({
                 name: AD_NAME,

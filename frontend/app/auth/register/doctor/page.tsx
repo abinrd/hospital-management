@@ -100,13 +100,14 @@ export default function DoctorRegister() {
       })
       return
     }
+    
 
     setIsSubmitting(true)
     try {
-      const response = await fetch("http://localhost:5500/api/v1/auth/complete-doctor-registration", {
+      const response = await fetchData("http://localhost:5500/api/v1/auth/complete-doctor-registration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, token }),
+        body: JSON.stringify({ ...formData, token:token }),
       })
 
       const data = await response.json()
@@ -114,6 +115,7 @@ export default function DoctorRegister() {
         toast.success("Registration Successful!", {
           description: "You can now log in to your account.",
         })
+        console.log(data);
       } else {
         toast.error("Registration failed", {
           description: data.message || "Please try again later.",

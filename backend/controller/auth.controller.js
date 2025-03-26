@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { JWT_EXPIRES_IN, JWT_SECRET,FRONTEND_URL } from '../config/env.js';
@@ -114,7 +115,7 @@ export const inviteDoctor = async (req, res, next) => {
             name,
             specialization,
             role: 'Doctor',
-            isApproved: false,
+            isApproved: true,
             password: crypto.randomBytes(10).toString('hex') // Temporary password
         });
           // Generate an invite token
@@ -173,45 +174,55 @@ export const inviteDoctor = async (req, res, next) => {
 // Complete doctor registration
 export const completeDoctorRegistration = async (req, res, next) => {
     try {
-        const { token, password, contactNumber, availableTimeSlots } = req.body;
+        console.log("Received Data:", req.body);
+
+        const { token, password, availableTimeSlots } = req.body;
         
         if (!token || !password) {
+            console.log("Missing token or password");
             return errorResponse(res, 400, "Token and password are required");
         }
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    //    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-        
         const doctor = await User.findOne({
-            inviteToken: token,
+            inviteToken: hashedToken,
             inviteTokenExpires: { $gt: Date.now() }
         });
 
         if (!doctor) {
+            console.log("Doctor not found or token expired");
             return errorResponse(res, 400, "Invalid or expired token");
         }
 
-        // Update doctor information
-        doctor.password = password;
-        doctor.contactNumber = contactNumber;
-        if (availableTimeSlots) doctor.availableTimeSlots = availableTimeSlots;
+        console.log("Doctor found:", doctor.email);
+
+        // Hash password before saving
+        const salt = await bcrypt.genSalt(10);
+        doctor.password = await bcrypt.hash(password, salt);
+
+        if (Array.isArray(availableTimeSlots)) {
+            doctor.availableTimeSlots = availableTimeSlots;
+        }
+
         doctor.inviteToken = undefined;
         doctor.inviteTokenExpires = undefined;
 
         await doctor.save();
 
-        // Generate JWT token
-        const jwtToken = jwt.sign({ userId: doctor._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        // Generate JWT
+        const jwtToken = jwt.sign({ userId: doctor._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "1d" });
 
-        doctor.password = undefined;
-
+        console.log("Registration Successful");
         return successResponse(res, 200, "Doctor registration completed successfully", {
             token: jwtToken,
             user: doctor
         });
     } catch (error) {
+        console.error("Error in completeDoctorRegistration:", error);
         next(error);
     }
 };
+
 
 // Create first admin (initialization)
 export const createFirstAdmin = async (req, res, next) => {

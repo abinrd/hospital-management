@@ -28,7 +28,7 @@ const UserSchema= new mongoose.Schema(
 
         role:{
             type:String,
-            enum:['Patient','Doctor','Admin'],
+            enum:['Patient','Doctor','admin'],
             default:'Patient',
         },
         
@@ -81,25 +81,37 @@ UserSchema.pre("save", async function (next) {
     return await bcrypt.compare(enteredPassword, this.password);
   };
 
-  UserSchema.methods.generateInviteToken = function() {
+  UserSchema.methods.generateInviteToken =  async function() {
     const token = crypto.randomBytes(32).toString('hex');
     this.inviteToken = crypto.createHash('sha256').update(token).digest('hex');
     this.inviteTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    
     return token;
 };
 
 UserSchema.statics.createFirstAdmin = async function(adminData) {
-    const adminCount = await this.countDocuments({ role: 'Admin' });
-    if (adminCount === 0) {
+    try {
+        const existingAdmin = await this.findOne({ email: adminData.email });
+
+        if (existingAdmin) {
+            console.log("✅ Admin already exists:", existingAdmin.email);
+            return existingAdmin;
+        }
+
+        console.log("🔹 No admin found. Creating default admin...");
         const admin = await this.create({
             ...adminData,
-            role: 'Admin',
+            role: 'admin',
             isApproved: true
         });
+
         return admin;
+    } catch (error) {
+        console.error("❌ Error creating admin:", error);
     }
-    return null;
 };
+
+
 
 const User=mongoose.model("User",UserSchema)
 
